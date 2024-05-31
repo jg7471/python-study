@@ -33,53 +33,88 @@ driver.find_element(By.XPATH, '//*[@id="Wa_header1_headerTop"]/div[2]/div[3]/ul[
 
 t.sleep(2)
 
-
+# 파일을 열고 쓰기 모드 설정
 with codecs.open(file_path, mode='w', encoding='utf-8') as f:
-
-    # selenium으로 현재 페이지의 html 소스 코드를 전부 불러오기
-    src = driver.page_source
-    #print(src)
-
-    soup = BeautifulSoup(src, 'html.parser')
-
-    div_list = soup.find_all('div', class_='ss_book_box')
-
-    rank = 1
-
-    for div in div_list:
-        book_info = div.find_all('li')
-
-        if book_info[0].find('span', class_='ss_ht1') == None:
-            #첫번째 li에 span class_="ss_ht1"이 없다면(사은품 없는 책)
-            book_title = book_info[0].text # 두 번째 li를 지목하기 위해 1번 인덱스로 지목
-            book_author = book_info[1].text
-            book_price = book_info[2].text
-        else:
-            #사은품 있는 책(span class_"ss_ht1"이 존재함)
-            book_title = book_info[1].text 
-            book_author = book_info[2].text
-            book_price = book_info[3].text
-
-        auth_info = book_author.split(' | ')
-
-        f.write(f'# 순위: {rank}위\n')
-        f.write(f'# 제목: {book_title}\n')
-        f.write(f'# 저자: {auth_info[0]}\n')
-        f.write(f'# 출판사: {auth_info[1]}\n')
-        f.write(f'# 출판년월: {auth_info[2]}\n')
-        f.write(f'# 가격: {book_price.split(", ")[0]}\n')
-        f.write('-' * 40 + '\n')
-
-        rank += 1
-        t.sleep(2)
-
-        for i in range(11):
-            try:
-                driver.find_element(By.XPATH, f'//*[@id="newbg_body"]/div[3]/ul/li[{i}]').click()
-            except Exception as e:
-                print(f'Error at index {i}: {e}')
-                    
-                
+    
+    cur_page_num = 2 # 현재 페이지 번호
+    target_page_num = 9 # 목적지 페이지 번호
+    rank = 1 # 순위
 
 
+    while cur_page_num <= target_page_num:
+    # for i in range(1, 12): #내가 작성
         
+
+        # 현재 페이지의 HTML 소스 코드를 가져와서 BeautifulSoup 객체로 파싱
+        src = driver.page_source
+        soup = BeautifulSoup(src, 'html.parser')
+        div_list = soup.find_all('div', class_='ss_book_box') #요소 전부 찾기
+        #div_list = soup.select('div.ss_book_box') #요소 취득시 요렇게도 가능
+
+        # 각 책의 정보를 추출하여 파일에 저장 : 내가 작성
+        # for div in div_list:
+        #     if rank == 245:
+        #         rank += 1
+        #         continue
+            
+        for div in div_list:
+            book_info = div.find_all('li')
+
+            # 사은품 정보가 있는지 확인
+            if book_info[0].find('span', class_='ss_ht1') == None:
+                #첫번째 li에 span class_="ss_ht1"이 없다면(사은품 없는 책)
+                book_title = book_info[0].text # 두 번째 li를 지목하기 위해 1번 인덱스로 지목
+                book_author = book_info[1].text
+                book_price = book_info[2].text
+            else:
+                #사은품 있는 책(span class_"ss_ht1"이 존재함)
+                book_title = book_info[1].text 
+                book_author = book_info[2].text
+                book_price = book_info[3].text
+
+            auth_info = book_author.split(' | ')
+
+            # 파일에 책 정보 기록
+            f.write(f'# 순위: {rank}위\n')
+            f.write(f'# 제목: {book_title}\n')
+            f.write(f'# 저자: {auth_info[0]}\n')
+            f.write(f'# 출판사: {auth_info[1]}\n')
+            f.write(f'# 출판년월: {auth_info[2]}\n')
+            f.write(f'# 가격: {book_price.split(", ")[0]}\n')
+            f.write('-' * 40 + '\n')
+
+            # 순위 증가
+            rank += 1
+
+        #내가 작성
+        #driver.find_element(By.XPATH, f'//*[@id="newbg_body"]/div[3]/ul/li[{i+1}]').click()
+        
+        
+        # 다음 페이지(탭)로 전환
+        cur_page_num += 1
+        driver.find_element(By.XPATH, f'//*[@id="newbg_body"]/div[3]/ul/li[{cur_page_num}]/a').click()
+        del soup
+        t.sleep(3)
+
+
+        #del soup #soup 정리(메모리 효율화)
+
+
+'''
+    find(태그이름(div/li), class_=?? or id=??): 조건에 맞는 첫 번째 요소를 반환합니다.
+    find_all(태그이름(div/li), class_=?? or id=??): 조건에 맞는 모든 요소를 리스트 형태로 반환합니다.
+    select(선택자): CSS 선택자를 사용해 요소를 선택합니다.
+    select_one(선택자): CSS 선택자를 사용해 첫 번째 요소를 선택합니다.
+    #위 4개 자주 씀
+
+    find_parent(): 해당 요소의 부모 요소를 반환합니다. (직속 부모)
+    find_parents(): 조건에 맞는 모든 부모 요소를 리스트 형태로 반환합니다.
+    find_next_sibling(): 다음 형제 요소를 반환합니다.
+    find_next_siblings(): 조건에 맞는 모든 다음 형제 요소를 리스트 형태로 반환합니다.
+    find_previous_sibling(): 이전 형제 요소를 반환합니다.
+    find_previous_siblings(): 조건에 맞는 모든 이전 형제 요소를 리스트 형태로 반환합니다.
+    find_next(): 다음 요소를 반환합니다.
+    find_all_next(): 조건에 맞는 모든 다음 요소를 리스트 형태로 반환합니다.
+    find_previous(): 이전 요소를 반환합니다.
+    find_all_previous(): 조건에 맞는 모든 이전 요소를 리스트 형태로 반환합니다.
+'''
